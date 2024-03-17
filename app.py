@@ -2,6 +2,7 @@ import networkx as nx
 from pyvis.network import Network
 import webbrowser
 import random
+from neo4j import GraphDatabase
 
 # Number of customers and products
 num_customers = 20
@@ -80,3 +81,37 @@ print(f"Graph exported to '{html_file}'")
 
 # Open the HTML file in a web browser
 webbrowser.open_new_tab(html_file)
+
+# Function to load data into Neo4j
+def load_data(tx):
+    for node in G.nodes:
+        if node.startswith('Customer'):
+            tx.run("MERGE (c:Customer {id: $id, OUT: $out_degree})",
+                   id=node, out_degree=G.out_degree(node))
+        else:
+            customers_connected = [neighbor for neighbor in G.predecessors(node) if neighbor.startswith('Customer')]
+            total_out_degree = sum(G.out_degree[c] for c in customers_connected)
+            total_in_degree = G.in_degree(node)
+            tx.run("MERGE (p:Product {id: $id, InfluenceFactor: $influence, IN: $in_degree})",
+                   id=node, influence=total_out_degree, in_degree=total_in_degree)
+
+    for edge in G.edges:
+        tx.run("MATCH (c:Customer {id: $cid}) "
+               "MATCH (p:Product {id: $pid}) "
+               "MERGE (c)-[:PURCHASED]->(p)", cid=edge[0], pid=edge[1])
+
+    # Create a named graph in Neo4j
+    tx.run("CALL gds.graph.project('aniketGraph6', '*', '*')")
+
+# Neo4j connection parameters
+uri = "bolt://localhost:7687"
+user = "neo4j"
+password = "abcd1234"
+
+# Connect to Neo4j and load data
+driver = GraphDatabase.driver(uri, auth=(user, password))
+with driver.session() as session:
+    session.write_transaction(load_data)
+
+# Close the Neo4j driver
+driver.close()
