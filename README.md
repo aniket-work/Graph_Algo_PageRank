@@ -33,7 +33,7 @@ To set up the `Graph_Algo_PageRank` environment, follow these steps:
 
 
 
-Its all about influence : PageRank in Graphs, why bother?
+# Its all about influence : PageRank in Graphs, why bother?
 
 Let’s not try to sell “Product A” to Aniket, Find out what Product Aniket mostly likely going to buy !
 
